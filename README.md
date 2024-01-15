@@ -1,5 +1,6 @@
 # Baseball Research on the Top Influence Players for 2024
 By Jordan S Richman
+# In-Progress Expect End 2/22/2024
 Project started on 11/1/2023
 
 # Definition: 
