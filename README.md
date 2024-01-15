@@ -23,7 +23,4 @@ xwOBA removes defense from the equation. Hitters, and likewise pitchers, are abl
 over what happens to a batted ball once it is put into play.
 
 # Important Statistics
-Below 0.300 is considered poor
-0.320 is considered average
-0.350 is considered good
-0.400 is considered excellent
+Below 0.300 is considered poor --- 0.320 is considered average --- 0.350 is considered good --- 0.400 is considered excellent
