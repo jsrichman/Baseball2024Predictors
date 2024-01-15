@@ -14,17 +14,17 @@ from sklearn.metrics import r2_score
 import seaborn as sns
 import sys
 
-# Definition: Expected Weighted On-base Average (xwOBA) is formulated using exit velocity, launch angle and,
+# Definition: Expected Weighted On-base Average (xwOBA) is formulated using exit velocity, launch angle, and,
 # on certain types of batted balls, Sprint Speed. In the same way that each batted ball is assigned an expected
-# batting average, every batted ball is given a single, double, triple and home run probability based on the results
-# of comparable batted balls since StatCast was implemented Major League wide in 2015. For the majority of batted
+# batting average, every batted ball is given a single, double, triple, and home run probability based on the results
+# of comparable batted balls since StatCast was implemented Major League-wide in 2015. For the majority of batted
 # balls, this is achieved using only exit velocity and launch angle. As of 2019, "topped" or "weakly hit" balls also
 # incorporate a batter's seasonal Sprint Speed. All hit types are valued in the same fashion for xwOBA as they are in
 # the formula for standard wOBA: (unintentional BB factor x unintentional BB + HBP factor x HBP + 1B factor x 1B + 2B
 # factor x 2B + 3B factor x 3B + HR factor x HR)/(AB + unintentional BB + SF + HBP), where "factor" indicates the
 # adjusted run expectancy of a batting event in the context of the season as a whole. Knowing the expected outcomes
 # of each individual batted ball from a particular player over the course of a season -- with a player's real-world
-# data used for factors such as walks, strikeouts and times hit by a pitch -- allows for the formation of said
+# data used for factors such as walks, strikeouts, and times hit by a pitch -- allows for the formation of said
 # player's xwOBA based on the quality of contact, instead of the actual outcomes. Likewise, this exercise can be done
 # for pitchers to get their expected xwOBA against.
 
@@ -87,7 +87,15 @@ top_players = all_data.nlargest(10, 'predicted_est_woba(advanced)')
 bottom_players = all_data.nsmallest(5, 'predicted_est_woba(advanced)')
 
 plt.figure(figsize=(10, 6))
-sns.regplot(x='est_woba', y='predicted_est_woba(advanced)', data=all_data, scatter_kws={'s': 20}, line_kws={'color': 'red'})
+sns.regplot(x='est_woba', y='predicted_est_woba(advanced)', data=all_data, scatter_kws={'s': 20},
+            line_kws={'color': 'red'})
+
+# Plot league average xwoba as a straight line
+# plt.axvline(x=league_average_xwoba, color='green', linestyle='--', label='League Average xWOBA')
+league_average_xwoba = 0.320
+plt.axhline(y=league_average_xwoba, color='green', linestyle='--', label='League Average xWOBA')
+percentile_80 = np.percentile(all_data['predicted_est_woba(advanced)'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of xWOBA')
 
 # Calculate and display R-squared
 r_squared = r2_score(y, all_data['predicted_est_woba(advanced)'])
@@ -97,31 +105,44 @@ plt.ylabel('Predicted xWOBA')
 
 # Annotate the top players
 for i, player in top_players.iterrows():
-    plt.annotate(player['player_name'], (player['est_woba'], player['predicted_est_woba(advanced)']), textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['est_woba'], player['predicted_est_woba(advanced)']),
+                 textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
 
 # Annotate the bottom players
 for i, player in bottom_players.iterrows():
-    plt.annotate(player['player_name'], (player['est_woba'], player['predicted_est_woba(advanced)']), textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['est_woba'], player['predicted_est_woba(advanced)']),
+                 textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+# Display the percentage on the graph
+plt.text(0.38, percentile_80, f'v Players in 80th Percentile of xWOBA {percentile_80:.3f} v', color='purple', ha='left',
+         va='bottom', fontsize=10)
+plt.text(0.38, league_average_xwoba, f'v League Average xWOBA {league_average_xwoba:.3f} v', color='green', ha='left',
+         va='bottom', fontsize=10)
+
 plt.show()
 #############################################################################################################3
-
 # ---Bar chart of the top predicted xWOBA for 2024--------------------------------------------------------------------
 
 # Closer look at the top 10 leaders in expected 2024 xWOBA
 # Sort the DataFrame by 'predicted_woba_2024' in descending order
-top_players = all_data.sort_values(by='predicted_est_woba(advanced)', ascending=False).drop_duplicates('player_name').head(30)
+top_players = all_data.sort_values(by='predicted_est_woba(advanced)', ascending=False).drop_duplicates(
+    'player_name').head(30)
 
 cmap = cm.get_cmap('Blues_r')
 
 # Reverse the normalization to have dark colors for higher values
-norm = colors.Normalize(vmin=top_players['predicted_est_woba(advanced)'].min(), vmax=top_players['predicted_est_woba(advanced)'].max())
+norm = colors.Normalize(vmin=top_players['predicted_est_woba(advanced)'].min(),
+                        vmax=top_players['predicted_est_woba(advanced)'].max())
 
 # Create a ScalarMappable with the colormap and reversed normalization
 sm = cm.ScalarMappable(cmap=cmap, norm=norm)
 
 # Create a bar chart
 plt.figure(figsize=(14, 8))
-bars = plt.bar(top_players['player_name'], top_players['predicted_est_woba(advanced)'], color=cmap(norm(top_players['predicted_est_woba(advanced)'])))
+bars = plt.bar(top_players['player_name'], top_players['predicted_est_woba(advanced)'],
+               color=cmap(norm(top_players['predicted_est_woba(advanced)'])))
 plt.xlabel('Player Name')
 plt.ylabel('Predicted xWOBA for 2024')
 plt.title('Top 30 Players with Highest Predicted xWOBA for 2024')
@@ -159,6 +180,11 @@ bottom_players = all_data.nsmallest(5, 'predicted_est_ba')
 plt.figure(figsize=(10, 6))
 sns.regplot(x='est_ba', y='predicted_est_ba', data=all_data, scatter_kws={'s': 20}, line_kws={'color': 'red'})
 
+league_average_xba = 0.248
+plt.axhline(y=league_average_xba, color='green', linestyle='--', label='League Average xBA')
+percentile_80 = np.percentile(all_data['predicted_est_ba'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of xBA')
+
 # Calculate and display R-squared
 r_squared = r2_score(z, all_data['predicted_est_ba'])
 plt.title(f'Regression Test for xBA Across the entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
@@ -167,11 +193,21 @@ plt.ylabel('Predicted xBatting Average')
 
 # Annotate the top players
 for i, player in top_players.iterrows():
-    plt.annotate(player['player_name'], (player['est_ba'], player['predicted_est_ba']), textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['est_ba'], player['predicted_est_ba']), textcoords="offset points",
+                 xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
 
 # Annotate the bottom players
 for i, player in bottom_players.iterrows():
-    plt.annotate(player['player_name'], (player['est_ba'], player['predicted_est_ba']), textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['est_ba'], player['predicted_est_ba']), textcoords="offset points",
+                 xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+plt.text(0.30, percentile_80, f'v Players in 80th Percentile of xBA {percentile_80:.3f} v', color='purple', ha='left',
+         va='bottom', fontsize=10)
+plt.text(0.30, league_average_xba, f'^ League Average xBA {league_average_xba:.3f} ^', color='green', ha='left',
+         va='top', fontsize=10)
+
 plt.show()
 ##################################################################################################################
 # Regression Test on xSLG.
@@ -199,6 +235,11 @@ bottom_players = all_data.nsmallest(5, 'predicted_est_slg')
 plt.figure(figsize=(10, 6))
 sns.regplot(x='est_slg', y='predicted_est_slg', data=all_data, scatter_kws={'s': 20}, line_kws={'color': 'red'})
 
+league_average_xslg = 0.413
+plt.axhline(y=league_average_xslg, color='green', linestyle='--', label='League Average xSLG')
+percentile_80 = np.percentile(all_data['predicted_est_slg'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of xSLG')
+
 # Calculate and display R-squared
 r_squared = r2_score(b, all_data['predicted_est_slg'])
 plt.title(f'Regression Test for xSLG Across the entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
@@ -207,11 +248,21 @@ plt.ylabel('Predicted xSLG')
 
 # Annotate the top players
 for i, player in top_players.iterrows():
-    plt.annotate(player['player_name'], (player['est_slg'], player['predicted_est_slg']), textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['est_slg'], player['predicted_est_slg']), textcoords="offset points",
+                 xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
 
 # Annotate the bottom players
 for i, player in bottom_players.iterrows():
-    plt.annotate(player['player_name'], (player['est_slg'], player['predicted_est_slg']), textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['est_slg'], player['predicted_est_slg']), textcoords="offset points",
+                 xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+plt.text(0.60, percentile_80, f'^ Players in 80th Percentile of xSLG {percentile_80:.3f} ^', color='purple', ha='left',
+         va='bottom', fontsize=10, transform=plt.gca().transAxes)
+plt.text(0.60, league_average_xslg, f'v League Average xSLG {league_average_xslg:.3f} v', color='green', ha='left',
+         va='bottom', fontsize=10, transform=plt.gca().transAxes)
+
 plt.show()
 
 #######################################################################################################################
@@ -240,21 +291,208 @@ bottom_players = all_data.nsmallest(5, 'predicted_brl_pa')
 plt.figure(figsize=(10, 6))
 sns.regplot(x='brl_pa', y='predicted_brl_pa', data=all_data, scatter_kws={'s': 20}, line_kws={'color': 'red'})
 
+league_average_brl_pa = all_data[all_data['year'] == 2023]['brl_pa'].mean()
+plt.axhline(y=league_average_brl_pa, color='green', linestyle='--', label='League Average Barrels per PA')
+percentile_80 = np.percentile(all_data['predicted_brl_pa'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of Barrels per PA')
+
 # Calculate and display R-squared
 r_squared = r2_score(d, all_data['predicted_brl_pa'])
-plt.title(f'Regression Test for Barrels per Plate Appearance Across the entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
+plt.title(
+    f'Regression Test for Barrels per Plate Appearance Across the entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
 plt.xlabel('Actual Barrels per Plate Appearance')
 plt.ylabel('Predicted Barrels per Plate Appearance')
 
 # Annotate the top players
 for i, player in top_players.iterrows():
-    plt.annotate(player['player_name'], (player['brl_pa'], player['predicted_brl_pa']), textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['brl_pa'], player['predicted_brl_pa']), textcoords="offset points",
+                 xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
 
 # Annotate the bottom players
 for i, player in bottom_players.iterrows():
-    plt.annotate(player['player_name'], (player['brl_pa'], player['predicted_brl_pa']), textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black', bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+    plt.annotate(player['player_name'], (player['brl_pa'], player['predicted_brl_pa']), textcoords="offset points",
+                 xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+plt.text(11.00, percentile_80, f'v 80th Percentile of Barrels per PA {percentile_80:.3f} v', color='purple', ha='left',
+         va='bottom', fontsize=10)
+plt.text(11.00, league_average_brl_pa, f'v League Average for Barrels per PA {league_average_brl_pa:.3f} v',
+         color='green', ha='left', va='bottom', fontsize=10)
+
 plt.show()
 #######################################################################################################################
+# Regression Test on Average Hit Angle.
+label_encoder = LabelEncoder()
+all_data['player_label'] = label_encoder.fit_transform(all_data['player_name'])
+
+# Prepare the data
+E = all_data[['year', 'player_label', 'est_ba', 'avg_hit_speed', 'est_slg']]
+f = all_data['avg_hit_angle']
+
+# Train a linear regression model
+model = LinearRegression()
+model.fit(E, f)
+
+# Add a new column for predicted est_woba using features of xBatting Average, barrels per plate appearance, and xSLG
+all_data['predicted_avg_hit_angle'] = model.predict(E)
+
+# Evaluate the model (you can replace this with your own evaluation metrics)
+mse = mean_squared_error(f, all_data['predicted_avg_hit_angle'])
+print(f'Mean Squared Error for Average Hit Angle: {mse}')
+
+top_players = all_data.nlargest(10, 'predicted_avg_hit_angle')
+bottom_players = all_data.nsmallest(5, 'predicted_avg_hit_angle')
+
+plt.figure(figsize=(10, 6))
+sns.regplot(x='avg_hit_angle', y='predicted_avg_hit_angle', data=all_data, scatter_kws={'s': 20},
+            line_kws={'color': 'red'})
+
+league_average_avg_hit_angle = all_data[all_data['year'] == 2023]['avg_hit_angle'].mean()
+plt.axhline(y=league_average_avg_hit_angle, color='green', linestyle='--', label='League Average Average Hit Angle')
+percentile_80 = np.percentile(all_data['predicted_avg_hit_angle'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of Average Hit Angle')
+
+# Calculate and display R-squared
+r_squared = r2_score(f, all_data['predicted_avg_hit_angle'])
+plt.title(f'Regression Test for Average Hit Angle Across the entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
+plt.xlabel('Actual Average Hit Angle')
+plt.ylabel('Predicted Average Hit Angle')
+
+# Annotate the top players
+for i, player in top_players.iterrows():
+    plt.annotate(player['player_name'], (player['avg_hit_angle'], player['predicted_avg_hit_angle']),
+                 textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+# Annotate the bottom players
+for i, player in bottom_players.iterrows():
+    plt.annotate(player['player_name'], (player['avg_hit_angle'], player['predicted_avg_hit_angle']),
+                 textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+plt.text(-5.00, percentile_80, f'v 80th % of AHA {percentile_80:.3f} v', color='purple', ha='left', va='bottom',
+         fontsize=10)
+plt.text(18.00, league_average_brl_pa, f'^ League Average for AHA {league_average_avg_hit_angle:.3f} ^', color='green',
+         ha='left', va='bottom', fontsize=10)
+
+plt.show()
+#######################################################################################################################
+# Regression Test on Average Hit Speed.
+label_encoder = LabelEncoder()
+all_data['player_label'] = label_encoder.fit_transform(all_data['player_name'])
+
+# Prepare the data
+G = all_data[['year', 'player_label', 'est_ba', 'avg_hit_angle', 'est_slg']]
+h = all_data['avg_hit_speed']
+
+# Train a linear regression model
+model = LinearRegression()
+model.fit(G, h)
+
+# Add a new column for predicted est_woba using features of xBatting Average, barrels per plate appearance, and xSLG
+all_data['predicted_avg_hit_speed'] = model.predict(G)
+
+# Evaluate the model (you can replace this with your own evaluation metrics)
+mse = mean_squared_error(h, all_data['predicted_avg_hit_speed'])
+print(f'Mean Squared Error for Average Hit Speed: {mse}')
+
+top_players = all_data.nlargest(10, 'predicted_avg_hit_speed')
+bottom_players = all_data.nsmallest(5, 'predicted_avg_hit_speed')
+
+plt.figure(figsize=(10, 6))
+sns.regplot(x='avg_hit_speed', y='predicted_avg_hit_speed', data=all_data, scatter_kws={'s': 20},
+            line_kws={'color': 'red'})
+
+league_average_avg_hit_speed = all_data[all_data['year'] == 2023]['avg_hit_speed'].mean()
+plt.axhline(y=league_average_avg_hit_speed, color='green', linestyle='--', label='League Average Average Hit Speed')
+percentile_80 = np.percentile(all_data['predicted_avg_hit_speed'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of Average Hit Speed')
+
+# Calculate and display R-squared
+r_squared = r2_score(h, all_data['predicted_avg_hit_speed'])
+plt.title(f'Regression Test for Average Hit Speed Across the entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
+plt.xlabel('Actual Average Hit Speed')
+plt.ylabel('Predicted Average Hit Speed')
+
+# Annotate the top players
+for i, player in top_players.iterrows():
+    plt.annotate(player['player_name'], (player['avg_hit_speed'], player['predicted_avg_hit_speed']),
+                 textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+# Annotate the bottom players
+for i, player in bottom_players.iterrows():
+    plt.annotate(player['player_name'], (player['avg_hit_speed'], player['predicted_avg_hit_speed']),
+                 textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+plt.text(94.00, percentile_80, f'v 80th % of AHS {percentile_80:.3f} v', color='purple', ha='left', va='bottom',
+         fontsize=10)
+plt.text(94.00, league_average_avg_hit_speed, f'v League Average for AHS {league_average_avg_hit_speed:.3f} v',
+         color='green', ha='left', va='bottom', fontsize=10)
+
+plt.show()
+######################################################################################################################
+# Regression Test on Average Distance.
+label_encoder = LabelEncoder()
+all_data['player_label'] = label_encoder.fit_transform(all_data['player_name'])
+
+# Prepare the data
+I = all_data[['year', 'player_label', 'est_ba', 'avg_hit_angle', 'avg_hit_speed']]
+j = all_data['avg_distance']
+
+# Train a linear regression model
+model = LinearRegression()
+model.fit(I, j)
+
+# Add a new column for predicted est_woba using features of xBatting Average, barrels per plate appearance, and xSLG
+all_data['predicted_avg_distance'] = model.predict(I)
+
+# Evaluate the model (you can replace this with your own evaluation metrics)
+mse = mean_squared_error(j, all_data['predicted_avg_distance'])
+print(f'Mean Squared Error for Average Hit Distance: {mse}')
+
+top_players = all_data.nlargest(10, 'predicted_avg_distance')
+bottom_players = all_data.nsmallest(5, 'predicted_avg_distance')
+
+plt.figure(figsize=(10, 6))
+sns.regplot(x='avg_distance', y='predicted_avg_distance', data=all_data, scatter_kws={'s': 20},
+            line_kws={'color': 'red'})
+
+league_average_avg_distance = all_data[all_data['year'] == 2023]['avg_distance'].mean()
+plt.axhline(y=league_average_avg_distance, color='green', linestyle='--', label='League Average Average Hit Distance')
+percentile_80 = np.percentile(all_data['predicted_avg_distance'], 80)
+plt.axhline(y=percentile_80, color='purple', linestyle='--', label='80th Percentile of Average Hit Distance')
+
+# Calculate and display R-squared
+r_squared = r2_score(j, all_data['predicted_avg_distance'])
+plt.title(
+    f'Regression Test for Average Hit Distance Across the Entire MLB (min 100 PA) with R-squared: {r_squared:.2f}')
+plt.xlabel('Actual Average Hit Distance')
+plt.ylabel('Predicted Average Hit Distance')
+
+# Annotate the top players
+for i, player in top_players.iterrows():
+    plt.annotate(player['player_name'], (player['avg_distance'], player['predicted_avg_distance']),
+                 textcoords="offset points", xytext=(0, 30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+# Annotate the bottom players
+for i, player in bottom_players.iterrows():
+    plt.annotate(player['player_name'], (player['avg_distance'], player['predicted_avg_distance']),
+                 textcoords="offset points", xytext=(0, -30), ha='center', va='center', fontsize=8, color='black',
+                 bbox=dict(boxstyle='round,pad=0.3', edgecolor='none', facecolor='white', alpha=0.8), rotation=60)
+
+plt.text(94.00, percentile_80, f'v 80th % of AHD {percentile_80:.3f} v', color='purple', ha='left', va='bottom',
+         fontsize=10)
+plt.text(94.00, league_average_avg_distance, f'v League Average for AHD {league_average_avg_distance:.3f} v',
+         color='green', ha='left', va='bottom', fontsize=10)
+
+plt.show()
+######################################################################################################################
+
+######################################################################################################################
 # print(all_data.to_string())
 
 fielding_data = pd.read_csv(r'C:\Users\jsric\Downloads\fielding_run_value_new.csv', encoding='utf-8')
@@ -263,13 +501,15 @@ data_plus_fielding.drop(['player_name_y'], axis=1, inplace=True)
 data_plus_fielding.drop(['year_y'], axis=1, inplace=True)
 data_plus_fielding = data_plus_fielding.rename(columns={'player_name_x': 'player_name'})
 data_plus_fielding = data_plus_fielding.rename(columns={'year_x': 'year'})
-data_plus_fielding = data_plus_fielding[['player_name', 'team'] + [col for col in data_plus_fielding.columns if col not in ['player_name', 'team']]]
+data_plus_fielding = data_plus_fielding[
+    ['player_name', 'team'] + [col for col in data_plus_fielding.columns if col not in ['player_name', 'team']]]
 
 extra_data = pd.read_csv(r'C:\Users\jsric\OneDrive\Documents\2023extrastats.csv', encoding='utf-8')
 
 # print(data_plus_fielding.to_string())
 
 #######################################################################################################################
+# Anomaly Detection
 # Anomaly Detection on run value to observe some of the outliers of the field
 data_plus_fielding['z_score'] = zscore(data_plus_fielding['run_value'])
 # Define a threshold for anomaly detection (e.g., 3 standard deviations)
@@ -277,14 +517,14 @@ threshold = 3
 # Identify anomalies
 anomalies = data_plus_fielding[abs(data_plus_fielding['z_score']) > threshold]
 # Print or analyze the anomalies
-anomalies_unique_run_value = anomalies[['player_name', 'team', 'run_value', 'outs', 'z_score']].drop_duplicates(subset=['player_name'])
+anomalies_unique_run_value = anomalies[['player_name', 'team', 'run_value', 'outs', 'z_score']].drop_duplicates(
+    subset=['player_name'])
 # Print the unique anomalies
 print("Anomaly Players in terms of Run Value that either dramatically hurt their teams chances or helped them:")
 print(anomalies_unique_run_value)
-print("\n" + "="*40 + "\n")  # Add a separator line
+print("\n" + "=" * 40 + "\n")  # Add a separator line
 
 ######################################################################################################################
-
 # Anomaly Detection on xWOBA to observe some of the outliers of the field
 data_plus_fielding['z_score'] = zscore(data_plus_fielding['predicted_est_woba(advanced)'])
 # Define a threshold for anomaly detection (e.g., 3 standard deviations)
@@ -292,11 +532,14 @@ threshold = 3
 # Identify anomalies
 anomalies = data_plus_fielding[abs(data_plus_fielding['z_score']) > threshold]
 # Print or analyze the anomalies
-anomalies_unique_xWoba = anomalies[['player_name', 'team', 'predicted_est_woba(advanced)', 'ba', 'brl_percent']].drop_duplicates(subset=['player_name'])
+anomalies_unique_xWoba = anomalies[
+    ['player_name', 'team', 'predicted_est_woba(advanced)', 'ba', 'brl_percent']].drop_duplicates(
+    subset=['player_name'])
 # Print the unique anomalies
 print("Anomaly Players in terms of xWOBA for 2024 exceed the norm: ")
 print(anomalies_unique_xWoba.to_string())
-print("\n" + "="*40 + "\n")  # Add a separator line
+print("\n" + "=" * 40 + "\n")  # Add a separator line
+
 
 ######################################################################################################################
 
@@ -317,7 +560,7 @@ def generate_team_plots(team_name):
     print(f"{team_name} Data Frame:")
     print(team_df.to_string())
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-######################################################################################################################
+    ######################################################################################################################
     # Get the top 5 players in terms of run_value
     top5_run_value = team_df.sort_values(by='run_value', ascending=False).head(5).reset_index(drop=True)
     print(f"Top 5 {team_name} Players in terms of Run Value:")
@@ -329,7 +572,7 @@ def generate_team_plots(team_name):
     print(f"Top 5 {team_name} Players in terms of Outs:")
     print(top5_outs[['player_name', 'outs']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-######################################################################################################################
+    ######################################################################################################################
     # Get the top 5 players in terms of x batting average
     top5_xbatting_average = team_df.sort_values(by='est_ba', ascending=False).head(5).reset_index(drop=True)
     print(f"Top 5 {team_name}Players in terms of Batting Average:")
@@ -337,13 +580,15 @@ def generate_team_plots(team_name):
     print("\n" + "=" * 40 + "\n")  # Add a separator line
 
     # Get the top 5 players in terms of x batting average for 2024
-    top5_x_batting_average_2024 = team_df.sort_values(by='predicted_est_ba', ascending=False).head(5).reset_index(drop=True)
+    top5_x_batting_average_2024 = team_df.sort_values(by='predicted_est_ba', ascending=False).head(5).reset_index(
+        drop=True)
     print(f"Top 5 {team_name} Players in terms of x Batting Average:")
     print(top5_x_batting_average_2024[['player_name', 'est_ba']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-######################################################################################################################
+    ######################################################################################################################
     # Get the top 5 players in terms of predicted_est_woba(advanced)
-    top5_est_woba_2024 = team_df.sort_values(by='predicted_est_woba(advanced)', ascending=False).head(5).reset_index(drop=True)
+    top5_est_woba_2024 = team_df.sort_values(by='predicted_est_woba(advanced)', ascending=False).head(5).reset_index(
+        drop=True)
     print(f"Top 5 {team_name} Players in terms of Predicted Estimated xWOBA for 2024:")
     print(top5_est_woba_2024[['player_name', 'predicted_est_woba(advanced)']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
@@ -353,7 +598,7 @@ def generate_team_plots(team_name):
     print(f"Top 5 {team_name} Players in terms of xWOBA:")
     print(top5_est_woba[['player_name', 'est_woba']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-######################################################################################################################
+    ######################################################################################################################
     # Get the top 5 players in terms of OPS
     top5_est_ops = team_df.sort_values(by='on_base_plus_slg', ascending=False).head(5).reset_index(drop=True)
     print(f"Top 5 {team_name} Players in terms of OPS:")
@@ -365,7 +610,7 @@ def generate_team_plots(team_name):
     print(f"Top 5 {team_name} Players in terms of xISO:")
     print(top5_est_xiso[['player_name', 'xiso']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-#######################################################################################################################
+    #######################################################################################################################
     # Get the top 5 players in terms of xSLG for 2024
     top5_xslg_2024 = team_df.sort_values(by='predicted_est_slg', ascending=False).head(5).reset_index(drop=True)
     print(f"Top 5 {team_name} Players in terms of 2024 Predicted xSLG:")
@@ -377,7 +622,7 @@ def generate_team_plots(team_name):
     print(f"Top 5 {team_name} Players in terms of xSLG:")
     print(top5_xslg[['player_name', 'est_slg']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-######################################################################################################################
+    ######################################################################################################################
     # Get the top 5 players in terms of Barrels per PA for 2024
     top5_brl_pa_2024 = team_df.sort_values(by='predicted_brl_pa', ascending=False).head(5).reset_index(drop=True)
     print(f"Top 5 {team_name} Players in terms of 2024 Predicted Barrels per Plate Appearance:")
@@ -389,7 +634,48 @@ def generate_team_plots(team_name):
     print(f"Top 5 {team_name} Players in terms of Barrels per Plate Appearance:")
     print(top5_brl_pa[['player_name', 'brl_pa']])
     print("\n" + "=" * 40 + "\n")  # Add a separator line
-#####################################################################################################################
+    #####################################################################################################################
+    # Get the top 5 players in terms of Average Hit Angle for 2024
+    top5_avg_hit_angle_2024 = team_df.sort_values(by='predicted_avg_hit_angle', ascending=False).head(5).reset_index(
+        drop=True)
+    print(f"Top 5 {team_name} Players in terms of 2024 Predicted Average Hit Angle:")
+    print(top5_avg_hit_angle_2024[['player_name', 'predicted_avg_hit_angle']])
+    print("\n" + "=" * 40 + "\n")  # Add a separator line
+
+    # Get the top 5 players in terms of Average Hit Angle
+    top5_avg_hit_angle = team_df.sort_values(by='avg_hit_angle', ascending=False).head(5).reset_index(drop=True)
+    print(f"Top 5 {team_name} Players in terms of Average Hit Angle:")
+    print(top5_avg_hit_angle[['player_name', 'avg_hit_angle']])
+    print("\n" + "=" * 40 + "\n")  # Add a separator line
+    #####################################################################################################################
+    # Get the top 5 players in terms of Average Hit Speed for 2024
+    top5_avg_hit_speed_2024 = team_df.sort_values(by='predicted_avg_hit_speed', ascending=False).head(5).reset_index(
+        drop=True)
+    print(f"Top 5 {team_name} Players in terms of 2024 Predicted Average Hit Speed:")
+    print(top5_avg_hit_speed_2024[['player_name', 'predicted_avg_hit_speed']])
+    print("\n" + "=" * 40 + "\n")  # Add a separator line
+
+    # Get the top 5 players in terms of Average Hit Speed
+    top5_avg_hit_speed = team_df.sort_values(by='avg_hit_speed', ascending=False).head(5).reset_index(drop=True)
+    print(f"Top 5 {team_name} Players in terms of Average Hit Speed:")
+    print(top5_avg_hit_speed[['player_name', 'avg_hit_speed']])
+    print("\n" + "=" * 40 + "\n")  # Add a separator line
+    #####################################################################################################################
+    # Get the top 5 players in terms of Average Hit Distance for 2024
+    top5_avg_distance_2024 = team_df.sort_values(by='predicted_avg_distance', ascending=False).head(5).reset_index(
+        drop=True)
+    print(f"Top 5 {team_name} Players in terms of 2024 Predicted Average Hit Distance:")
+    print(top5_avg_distance_2024[['player_name', 'predicted_avg_distance']])
+    print("\n" + "=" * 40 + "\n")  # Add a separator line
+
+    # Get the top 5 players in terms of Average Hit Distance
+    top5_avg_distance = team_df.sort_values(by='avg_distance', ascending=False).head(5).reset_index(drop=True)
+    print(f"Top 5 {team_name} Players in terms of Average Hit Distance:")
+    print(top5_avg_distance[['player_name', 'avg_distance']])
+    print("\n" + "=" * 40 + "\n")  # Add a separator line
+    #####################################################################################################################
+
+    ####################################################################################################################
     # xWoba Bar Charts
     fig, axs = plt.subplots(1, 2, figsize=(15, 6))
 
@@ -425,7 +711,7 @@ def generate_team_plots(team_name):
 
     # Show the plot
     plt.show()
-######################################################################################################################
+    ######################################################################################################################
     # Batting Average Bar Charts
     fig, axs = plt.subplots(1, 2, figsize=(15, 6))
 
@@ -433,7 +719,8 @@ def generate_team_plots(team_name):
     bar_color = 'slategrey'
 
     # Bar chart for top 5 players in terms of x batting average for 2024
-    axs[0].bar(top5_x_batting_average_2024['player_name'], top5_x_batting_average_2024['predicted_est_ba'], color=bar_color)
+    axs[0].bar(top5_x_batting_average_2024['player_name'], top5_x_batting_average_2024['predicted_est_ba'],
+               color=bar_color)
     axs[0].set_title(f'Top 5 {team_name} Players - 2024 Predicted xBatting Average')
     axs[0].set_ylabel('2024 xBatting Average')
     axs[0].tick_params(axis='x', rotation=45, labelsize=8)
@@ -461,7 +748,7 @@ def generate_team_plots(team_name):
 
     # Show the plot
     plt.show()
-######################################################################################################################
+    ######################################################################################################################
     # Bar charts for xSLG
     fig, axs = plt.subplots(1, 2, figsize=(15, 6))
 
@@ -498,7 +785,7 @@ def generate_team_plots(team_name):
 
     # Show the plot
     plt.show()
-######################################################################################################################
+    ######################################################################################################################
     # Bar Charts for Barrels per PA
     fig, axs = plt.subplots(1, 2, figsize=(15, 6))
 
@@ -535,7 +822,120 @@ def generate_team_plots(team_name):
 
     # Show the plot
     plt.show()
-######################################################################################################################
+    ######################################################################################################################
+    # Bar Charts for Average Hit Angle
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Set the color for both bar charts
+    bar_color = 'slategrey'
+
+    # Bar chart for top 5 players in terms of Avg Hit Angle for 2024
+    axs[0].bar(top5_avg_hit_angle_2024['player_name'], top5_avg_hit_angle_2024['predicted_avg_hit_angle'],
+               color=bar_color)
+    axs[0].set_title(f'Top 5 {team_name} Players - 2024 Predicted Average Hit Angle')
+    axs[0].set_ylabel('2024 Average Hit Angle')
+    axs[0].tick_params(axis='x', rotation=45, labelsize=8)
+    axs[0].set_xlabel('Player Name')
+    axs[0].grid(axis='y')
+
+    # Add value annotations at the top of each bar for the first subplot
+    for i, v in enumerate(top5_avg_hit_angle_2024['predicted_avg_hit_angle']):
+        axs[0].text(i, v + 0.001, str(round(v, 3)), ha='center', va='bottom', fontsize=8)
+
+    # Bar chart for top 5 players in terms of Average Hit Angle
+    axs[1].bar(top5_avg_hit_angle['player_name'], top5_avg_hit_angle['avg_hit_angle'], color=bar_color)
+    axs[1].set_title(f'Top 5 {team_name} Players - Average Hit Angle')
+    axs[1].set_ylabel('Average Hit Angle')
+    axs[1].tick_params(axis='x', rotation=45, labelsize=8)
+    axs[1].set_xlabel('Player Name')
+    axs[1].grid(axis='y')
+
+    # Add value annotations at the top of each bar for the second subplot
+    for i, v in enumerate(top5_avg_hit_angle['avg_hit_angle']):
+        axs[1].text(i, v + 0.001, str(round(v, 3)), ha='center', va='bottom', fontsize=8)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+    ######################################################################################################################
+    # Bar Charts for Average Hit Speed
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Set the color for both bar charts
+    bar_color = 'slategrey'
+
+    # Bar chart for top 5 players in terms of Avg Hit Speed for 2024
+    axs[0].bar(top5_avg_hit_speed_2024['player_name'], top5_avg_hit_speed_2024['predicted_avg_hit_speed'],
+               color=bar_color)
+    axs[0].set_title(f'Top 5 {team_name} Players - 2024 Predicted Average Hit Speed')
+    axs[0].set_ylabel('2024 Average Hit Speed')
+    axs[0].tick_params(axis='x', rotation=45, labelsize=8)
+    axs[0].set_xlabel('Player Name')
+    axs[0].grid(axis='y')
+
+    # Add value annotations at the top of each bar for the first subplot
+    for i, v in enumerate(top5_avg_hit_speed_2024['predicted_avg_hit_speed']):
+        axs[0].text(i, v + 0.001, str(round(v, 3)), ha='center', va='bottom', fontsize=8)
+
+    # Bar chart for top 5 players in terms of Average Hit Angle
+    axs[1].bar(top5_avg_hit_speed['player_name'], top5_avg_hit_speed['avg_hit_speed'], color=bar_color)
+    axs[1].set_title(f'Top 5 {team_name} Players - Average Hit Speed')
+    axs[1].set_ylabel('Average Hit Speed')
+    axs[1].tick_params(axis='x', rotation=45, labelsize=8)
+    axs[1].set_xlabel('Player Name')
+    axs[1].grid(axis='y')
+
+    # Add value annotations at the top of each bar for the second subplot
+    for i, v in enumerate(top5_avg_hit_speed['avg_hit_speed']):
+        axs[1].text(i, v + 0.001, str(round(v, 3)), ha='center', va='bottom', fontsize=8)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+    #####################################################################################################################
+    # Bar Charts for Average Hit Distance
+    fig, axs = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Set the color for both bar charts
+    bar_color = 'slategrey'
+
+    # Bar chart for top 5 players in terms of Avg Hit Distance for 2024
+    axs[0].bar(top5_avg_distance_2024['player_name'], top5_avg_distance_2024['predicted_avg_distance'],
+               color=bar_color)
+    axs[0].set_title(f'Top 5 {team_name} Players - 2024 Predicted Average Hit Distance')
+    axs[0].set_ylabel('2024 Average Hit Distance')
+    axs[0].tick_params(axis='x', rotation=45, labelsize=8)
+    axs[0].set_xlabel('Player Name')
+    axs[0].grid(axis='y')
+
+    # Add value annotations at the top of each bar for the first subplot
+    for i, v in enumerate(top5_avg_distance_2024['predicted_avg_distance']):
+        axs[0].text(i, v + 0.001, str(round(v, 3)), ha='center', va='bottom', fontsize=8)
+
+    # Bar chart for top 5 players in terms of Average Hit Angle
+    axs[1].bar(top5_avg_distance['player_name'], top5_avg_distance['avg_distance'], color=bar_color)
+    axs[1].set_title(f'Top 5 {team_name} Players - Average Hit Distance')
+    axs[1].set_ylabel('Average Hit Distance')
+    axs[1].tick_params(axis='x', rotation=45, labelsize=8)
+    axs[1].set_xlabel('Player Name')
+    axs[1].grid(axis='y')
+
+    # Add value annotations at the top of each bar for the second subplot
+    for i, v in enumerate(top5_avg_distance['avg_distance']):
+        axs[1].text(i, v + 0.001, str(round(v, 3)), ha='center', va='bottom', fontsize=8)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()
+    #####################################################################################################################
+
+    #####################################################################################################################
     # Run Value and Outs Bar Charts
     fig, axs = plt.subplots(1, 2, figsize=(15, 6))
 
@@ -571,8 +971,8 @@ def generate_team_plots(team_name):
 
     # Show the plot
     plt.show()
-######################################################################################################################
-    # Scatterplot for Barrel per PA and avg hit speed with xSLUG as value
+    ######################################################################################################################
+    # Scatterplot for Barrel per PA and avg hit speed with xSLG as value
     # Set the size of the points based on est_slg
 
     league_average_slg = 0.413
@@ -580,7 +980,7 @@ def generate_team_plots(team_name):
 
     # Create a scatter plot with color representing est_slg values
     scatter = plt.scatter(team_df['avg_hit_speed'], team_df['brl_pa'], s=point_size, alpha=0.5, c=team_df['est_slg'],
-        cmap='Blues', vmin=team_df['est_slg'].min(), vmax=team_df['est_slg'].max())
+                          cmap='Blues', vmin=team_df['est_slg'].min(), vmax=team_df['est_slg'].max())
 
     # Set labels and title
     plt.xlabel('Average Hit Speed')
@@ -594,16 +994,17 @@ def generate_team_plots(team_name):
     # Add player_name and est_slg annotations
     for i, row in team_df.iterrows():
         plt.annotate(f"{row['player_name']}\n{row['est_slg']:.3f}", (row['avg_hit_speed'], row['brl_pa']), fontsize=8,
-                    ha='center', va='bottom')
+                     ha='center', va='bottom')
 
     # Show the plot
     plt.show()
-######################################################################################################################
+    ######################################################################################################################
     # Scatter PLot for Damage
     point_size = 100  # Set a default size for all points
     # Create a scatter plot with color representing est_slg values
-    scatter = plt.scatter(team_df['on_base_plus_slg'], team_df['xiso'], s=point_size, alpha=0.5, c=team_df['player_age'],
-                        cmap='Blues', vmin=team_df['player_age'].min(), vmax=team_df['player_age'].max())
+    scatter = plt.scatter(team_df['on_base_plus_slg'], team_df['xiso'], s=point_size, alpha=0.5,
+                          c=team_df['player_age'],
+                          cmap='Blues', vmin=team_df['player_age'].min(), vmax=team_df['player_age'].max())
 
     # Set labels and title
     plt.xlabel('On Base Plus Slug')
@@ -618,7 +1019,8 @@ def generate_team_plots(team_name):
         plt.annotate(age_label, (row['on_base_plus_slg'], row['xiso']), fontsize=8, ha='center', va='bottom')
 
     plt.show()
-######################################################################################################################
+    ######################################################################################################################
+    print(f'Points Breakdown for the {team_name}.')
     # Points Function
     player_points = {}
 
@@ -633,13 +1035,18 @@ def generate_team_plots(team_name):
 
     # Assign points based on ranking
     assign_points(top5_run_value)
-    assign_points(top5_outs)
     assign_points(top5_x_batting_average_2024)
     assign_points(top5_xslg_2024)
     assign_points(top5_est_woba_2024)
     assign_points(top5_brl_pa_2024)
+    assign_points(top5_avg_hit_angle_2024)
+    assign_points(top5_avg_hit_speed_2024)
+    assign_points(top5_avg_distance_2024)
     assign_points(top5_est_ops)
     assign_points(top5_est_xiso)
+
+    second_player = None  # Initialize outside any block
+    third_player = None  # Initialize outside any block
 
     # Display the total points for each player
     for player, points in sorted(player_points.items(), key=lambda x: x[1], reverse=True):
@@ -647,18 +1054,80 @@ def generate_team_plots(team_name):
     if player_points:
         max_player, max_points = max(player_points.items(), key=lambda x: x[1])
         print(f"\nPlayer with the most points: {max_player} with {max_points} points")
+        player_points.pop(max_player)  # Remove the player with the most points
+
+        if player_points:
+            second_player, second_points = max(player_points.items(), key=lambda x: x[1])
+            print(f"Second place: {second_player} with {second_points} points")
+
+            player_points.pop(second_player)  # Remove the second-place player
+
+            if player_points:
+                third_player, third_points = max(player_points.items(), key=lambda x: x[1])
+                print(f"Third place: {third_player} with {third_points} points")
     else:
         print("\nNo players to evaluate.")
-######################################################################################################################
+    ######################################################################################################################
+    def analyze_player_rankings(max_player, top5_run_value, top5_x_batting_average_2024, top5_xslg_2024,
+                                top5_est_woba_2024, top5_brl_pa_2024, top5_avg_hit_angle_2024, top5_avg_hit_speed_2024,
+                                top5_avg_distance_2024, top5_est_ops, top5_est_xiso):
+        categories = {
+            'Run Value': top5_run_value,
+            'x Batting Average 2024': top5_x_batting_average_2024,
+            'xSLG 2024': top5_xslg_2024,
+            'Predicted Estimated xWOBA 2024': top5_est_woba_2024,
+            'Barrels per PA 2024': top5_brl_pa_2024,
+            'Average Hit Angle 2024': top5_avg_hit_angle_2024,
+            'Average Hit Speed 2024': top5_avg_hit_speed_2024,
+            'Average Distance 2024': top5_avg_distance_2024,
+            'Estimated OPS': top5_est_ops,
+            'Estimated xISO': top5_est_xiso,
+        }
+        for category, top5_players in categories.items():
+            player_rank = top5_players[top5_players['player_name'] == max_player].index.tolist()
+            if player_rank:
+                print(f'{max_player} ranked {player_rank[0] + 1} in {category}.')
+            else:
+                print(f'{max_player} is not in the top 5 for {category}.')
+
+    ######################################################################################################################
+    print("\n" + "=" * 40 + "\n")
     print(
-        f'For our analysis of the {team_name} we observe a few key results. {max_player} is the our predicted key contributors for the {team_name} the 2024\n'
-        f'MLB season. Specifically {max_player} contributes a large value to the team. He leads the team in xWOBA, predicted xWOBA for 2024, exceeds the team in xSLG, and \n'
-        'exceeds in fielding based upon his fielding run value. This means a variety of things. Kepler causes damage due to his xSLG being 0.086 higher\n'
-        'than league average. He barrels up the ball on average far more than the rest of his team and his average ball hit is far harder than his team as well. \n'
-        'He saves runs on the field where hes in the top 80 of the whole league in fielding run value. Based upon three years of historical data I found Keplers \n'
-        f'xWOBA for 2024 exceeds the league average xWOBA for their predicted xWOBA by 0.086 which is significant. \033[1m{max_player} is my predicted\n'
-        'key top contributor for the Twins\033[0m')
-    sys.exit("Exiting the function")
+        f'For our analysis of the {team_name} we observe a few key results. {max_player} is the our predicted key\n'
+        f'contributors for the {team_name} the 2024 MLB season. {max_player} contributes a large value to his team,\n'
+        f'scoring high in numerous categories. Specifically {max_player} placed in these categories:')
+    analyze_player_rankings(max_player, top5_run_value, top5_x_batting_average_2024, top5_xslg_2024, top5_est_woba_2024,
+                            top5_brl_pa_2024, top5_avg_hit_angle_2024, top5_avg_hit_speed_2024, top5_avg_distance_2024,
+                            top5_est_ops, top5_est_xiso)
+    print("\n" + "=" * 40 + "\n")
+    print(
+        f'{second_player} and {third_player} also scored well in most categories as well. In our analysis we must\n'
+        f'keep a few factors in mind when we make our predictions. 1: A few of these players score well in specific\n'
+        f'categories because they are platoon players (players who only off pitchers they hit will against commonly\n'
+        f'left hitting hitters hitting against right-handed pitchers and vice versa) 2: I sampled players with only\n'
+        f'100 Plate Appearances. I wanted to analyze a diverse amount of players (Rookies, Injured Players, Platoon\n'
+        f'Only Players) 3: Some players have only played one season so it`s more difficult to analyze historical\n'
+        f'data. I utilized advanced hitting metrics and Linear Regression to formulate an educated estimation.\n\n'
+
+        f'\033[1m{max_player} is my predicted key top contributor for the {team_name} for the 2024 MLB season.\033[0m')
+    print("\n" + "=" * 40 + "\n")
+
+    # Create a podium visualization
+    def display_podium(max_player, second_player, third_player):
+        print(" -----Awards Podium------- ")
+        print(" -------------------------")
+
+        max_len = 15
+        second_len = 10
+        third_len = 5
+
+        # Print each place with a bar
+        print(f" 2nd: {('=' * second_len) + '|'} {second_player}")
+        print(f" 1st: {('=' * max_len) + '|'} {max_player}")
+        print(f" 3rd: {('=' * third_len) + '|'} {third_player}")
+
+    display_podium(max_player, second_player, third_player)
+
 ######################################################################################################################
 team_name = input("Enter a team to analyze: ")
 generate_team_plots(team_name)
