@@ -1950,22 +1950,3 @@ create_podium_chart(predicted_values, 'NL', axes[1])
 # Adjust overall layout
 plt.suptitle("Top 3 Players by xWAR for AL and NL", fontsize=16, weight='bold')
 plt.show()
-
-
-# In[123]:
-
-
-pip install streamlit
-
-
-# In[128]:
-
-
-jupyter nbconvert --to script BaseballProject2025.ipynb
-
-
-# In[ ]:
-
-
-http://localhost:8890/files/BaseballProject2025.ipynb?_xsrf=2%7Cb5179c6f%7Cad2b51af100531986a6137ada2448567%7C1746063350
-
