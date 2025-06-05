@@ -13,7 +13,6 @@ from matplotlib.ticker import FuncFormatter
 from sklearn.metrics import r2_score
 import seaborn as sns
 import sys
-
 # Definition: Expected Weighted On-base Average (xwOBA) is formulated using exit velocity, launch angle, and,
 # on certain types of batted balls, Sprint Speed. In the same way that each batted ball is assigned an expected
 # batting average, every batted ball is given a single, double, triple, and home run probability based on the results
